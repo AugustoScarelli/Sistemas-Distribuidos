@@ -1,0 +1,16 @@
+ps -> Abre todos os processos
+
+ps -aux -> Abre todos os processos com mais detalhes
+
+kill -9 #ID -> mata o processo
+
+gcc nome.c -o n -> compila
+
+./x -> Executa
+./x& -> Executa e deixa rodando (pro servidor)
+
+bzero(buf, 1024) -> fflush
+
+strcmp(buf,"sair") -> Comparação de string
+
+sincrono -> O cliente envia a mensagem primeiro.......

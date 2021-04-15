@@ -10,9 +10,8 @@
 main()
 {
 	int sock, length;
-  int cont=0;
 	struct sockaddr_in name;
-	char buf[1024];
+	char buf[1024], saida[1024] = "sair\n\0";;
 
         /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -37,28 +36,27 @@ main()
 		perror("getting socket name");
 		exit(1);
 	}
-	printf("SSSSSSS  porta: %d\n",ntohs(name.sin_port));
+	printf("Socket port #%d\n",ntohs(name.sin_port));
+  do{
+    /* Recebe e printa a mensagem e os dados do cliente */
+    recvfrom(sock,buf,sizeof buf, 0, (struct sockaddr *)&name, &length);
 
-	/* Le */
-//	if (read(sock,buf,1024)<0)
-//                perror("receiving datagram packet");
+    printf("  %s\n", buf); // Printa a mensagem que veio do cliente pela variavel "buf"
 
-do{
-recvfrom (sock,buf,1024,0,(struct sockaddr *)&name, &length);
+    /* Le a string */
+    printf("Digite a mensagem resposta que deseja enviar:");
+    fgets(buf, 1023, stdin);
 
-printf("SSSS  Endereco do cliente:\n");
-printf("SSSS  Familia: %d\n", name.sin_family);
-printf("SSSS  IP: %s\n", inet_ntoa(name.sin_addr));
-printf("SSSS  Porta: %d\n", name.sin_port);
+    if(strcmp(buf,saida) == 0)
+    {
+      break;
+    }
 
-printf("SSSSSS   mensagem recebida: %s\n", buf);
+    /* Envia Resposta pro Cliente */
+    sendto (sock,buf,sizeof buf, 0, (struct sockaddr *)&name, sizeof name);
+  }while(1);
 
-cont++;
-
-sendto(sock, (char *)&cont, sizeof cont, 0, (struct sockaddr *)&name, sizeof name);
-
-} while(cont<4);
-
-        close(sock);
-        exit(0);
+  close(sock);
+  exit(0);
 }
+

@@ -7,14 +7,21 @@
 #include <strings.h>
 #include <arpa/inet.h>
 
+struct mensagem
+{
+  int codigo;
+  char linha[1024];
+};
+
 main()
 {
 	int sock, length;
-  int cont=0;
 	struct sockaddr_in name;
 	char buf[1024];
+  //---------------
+  struct mensagem mens;
 
-        /* Cria o socket de comunicacao */
+  /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if(sock<0) {
 	/*
@@ -37,28 +44,44 @@ main()
 		perror("getting socket name");
 		exit(1);
 	}
-	printf("SSSSSSS  porta: %d\n",ntohs(name.sin_port));
+  
+	printf("Socket port #%d\n",ntohs(name.sin_port));
 
-	/* Le */
-//	if (read(sock,buf,1024)<0)
-//                perror("receiving datagram packet");
+//Le a mensagem de cadastramento do cliente
+//----------------------------------------------------------
 
-do{
-recvfrom (sock,buf,1024,0,(struct sockaddr *)&name, &length);
+  bzero(buf, 1024);
+  recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
 
-printf("SSSS  Endereco do cliente:\n");
-printf("SSSS  Familia: %d\n", name.sin_family);
-printf("SSSS  IP: %s\n", inet_ntoa(name.sin_addr));
-printf("SSSS  Porta: %d\n", name.sin_port);
+  printf("Endereco do cliente:\n");
+  printf("IP: %s  porta:%d\n\n", inet_ntoa(name.sin_addr), name.sin_port);
 
-printf("SSSSSS   mensagem recebida: %s\n", buf);
+  printf("SSSS: Mensagem Recebida: %d\n", mens.codigo); //cod de cadastramento
 
-cont++;
+//----------------------------------------------------------
 
-sendto(sock, (char *)&cont, sizeof cont, 0, (struct sockaddr *)&name, sizeof name);
+  if(fork()==0)
+  {
+    //Filho
+    do
+    {
+      bzero(mens.linha, 1024);
+      recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
+      printf("SSSS: Mensagem Recebida: %s\n", mens.linha);
+    } while(1);
+  }
+  else
+  {
+    //Pai
+    do
+    {
+      printf("\nSSSS: Digite a Mensagem: ");
+      bzero(mens.linha, 1024); //zera a struck buf ali......pesquisar +
+      fgets(mens.linha, 1023, stdin);
+      sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+    } while(1);
+  }
 
-} while(cont<4);
-
-        close(sock);
-        exit(0);
+  close(sock);
+  exit(0);
 }

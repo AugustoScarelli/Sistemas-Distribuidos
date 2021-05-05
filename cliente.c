@@ -6,15 +6,21 @@
 #include <stdlib.h>
 #include <strings.h>
 
-//#define DATA "Esta eh a mensagem que quero enviar"
-
-int main()
-
+struct mensagem
 {
-	int sock, cont, tam;
+  int codigo;
+  char linha[1024];
+};
+
+main(argc, argv)
+     int argc;
+     char *argv[];
+{
+	int sock, tam;
+  char buf[1024]; 
 	struct sockaddr_in name;
 	struct hostent *hp, *gethostbyname();
-  char linha[1024];
+  struct mensagem mens;
 
         /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -28,25 +34,39 @@ int main()
 	/* Associa */
         hp = gethostbyname("localhost");
         if (hp==0) {
-            fprintf(stderr, "unknown host ");
+            fprintf(stderr, "Unknown host ");
             exit(2);
         }
         bcopy ((char *)hp->h_addr, (char *)&name.sin_addr, hp->h_length);
 	name.sin_family = AF_INET;
 	name.sin_port = htons(1234);
 
-	/* Envia */
+  //Codigo de cadastramento no servidor
+  mens.codigo = 1;
+  sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
 
-printf ("Digite a mensagem: ");
-fgets(linha, 1023, stdin);
-
-	if (sendto (sock,linha,sizeof linha, 0, (struct sockaddr *)&name, sizeof name)<0)
-                perror("sending datagram message");
-
-recvfrom(sock, (char *)&cont, sizeof cont, 0, (struct sockaddr *)&name, &tam);
-
-printf("Timestamp: %d\n", cont);
-
-close(sock);
-exit(0);
+  if(fork() == 0)
+  {
+    //Filho
+    do
+    {
+      bzero(mens.linha, 1024);//--------
+      recvfrom (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &tam);
+      printf("\nCCC Mensagem recebida: %s\n", mens.linha);
+    } while(1);
+  }
+  else
+  {
+    //Pai
+    do
+    {
+      printf("CCC Digite a Mensagem: ");
+      bzero(mens.linha, 1024);//--------
+      fgets(mens.linha, 1023, stdin);
+      sendto (sock, (char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+    } while(1);
+  }
+                
+  close(sock);
+  exit(0);
 }

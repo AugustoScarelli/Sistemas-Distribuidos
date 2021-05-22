@@ -10,16 +10,19 @@
 struct mensagem
 {
   int codigo;
+  int qtd_users;
+  char username_cliente[50];
   char linha[1024];
 };
 
 main()
 {
-	int sock, length;
+	int sock, length, qtd_usuarios = 0, valid = 0, posi;
 	struct sockaddr_in name;
-	char buf[1024];
+	char buf[1024], zera[50]="--";
   //---------------
   struct mensagem mens;
+  struct mensagem lista_usuarios[10];
 
   /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -47,20 +50,79 @@ main()
   
 	printf("Socket port #%d\n",ntohs(name.sin_port));
 
-//Le a mensagem de cadastramento do cliente
+//Le a mensagem do cliente
 //----------------------------------------------------------
-
+do
+{
   bzero(buf, 1024);
   recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
 
-  printf("Endereco do cliente:\n");
-  printf("IP: %s  porta:%d\n\n", inet_ntoa(name.sin_addr), name.sin_port);
+  switch(mens.codigo)
+  {
+    //Cadastramento
+    case 0: 
+      //Verifica se já não existe um usuário com o mesmo nome
+      for(int i = 0; i < 10; i++)
+      {
+        if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
+        {
+          valid++;
+        }
+      }
+       //Coloca o username inserido pelo usuário na lista de users cadastrados/online
+      if(valid == 0)
+      {
+        strcpy(lista_usuarios[qtd_usuarios].username_cliente, mens.username_cliente);
+        printf("%s está online\n", lista_usuarios[qtd_usuarios].username_cliente);
 
-  printf("SSSS: Mensagem Recebida: %d\n", mens.codigo); //cod de cadastramento
+        //Envia pro cliente um feedback quando cadastrado
+        bzero(buf, 1024);
+        mens.codigo = 11;
+        qtd_usuarios++;
+        sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+        valid = 0;
+        break;
+      }
+      else
+      {
+        mens.codigo = 10;
+        sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+        valid = 0;
+        break;
+      }
+
+    //Falar com outro usuário
+    case 1:
+
+    //Listar Usuários Online
+    case 2:
+      sendto(sock,(char *)&lista_usuarios,sizeof lista_usuarios, 0, (struct sockaddr *)&name, sizeof name);
+      break;
+
+    //Funcionalidade não encontrada/listada.
+    default: printf("\nOpcao nao encontrada.Tente novamente mais tarde ou tente outra funcionalidade.\n");
+
+    case 3:
+      printf("Até logo!\n");
+      for(int i = 0; i < 10; i++)
+      {
+        if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
+        {
+          strcpy(lista_usuarios[i].username_cliente, "--");
+          posi = i;
+        }
+      }
+      for(int i = posi; i < 10-posi; i++)
+      {
+        strcpy(lista_usuarios[i].username_cliente, lista_usuarios[i+1].username_cliente);
+      }
+      qtd_usuarios--;
+  }
+}while(1);
 
 //----------------------------------------------------------
 
-  if(fork()==0)
+/*  if(fork()==0)
   {
     //Filho
     do
@@ -83,5 +145,5 @@ main()
   }
 
   close(sock);
-  exit(0);
+  exit(0);*/
 }

@@ -1,31 +1,44 @@
-#include <sys/types.h>
+ #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
 #include <netdb.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
+#include <unistd.h>
+
+void clean_stdin(void)
+{
+    int c;
+    do {
+        c = getchar();
+    } while (c != '\n' && c != EOF);
+}
 
 struct mensagem
 {
+  int menu;
   int codigo;
   int qtd_users;
   char username_cliente[50];
   char linha[1024];
+  int cliente_port;
+  int cliente_addr;
 };
 
 main(argc, argv)
      int argc;
      char *argv[];
 {
-	int sock, tam, length, sair = 0;
+	int sock, tam, length, sair = 0, escolha;
   char buf[1024]; 
 	struct sockaddr_in name;
 	struct hostent *hp, *gethostbyname();
   struct mensagem mens;
   struct mensagem lista_usuarios[10];
 
-        /* Cria o socket de comunicacao */
+  /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
 	if(sock<0) {
 	/*
@@ -50,10 +63,8 @@ main(argc, argv)
     printf("DIGITE SEU USERNAME: ");
     bzero(mens.username_cliente, 50);
     fgets(mens.username_cliente, 49, stdin); 
-    mens.codigo = 0; //Código que informa cadastramento
-    sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-    
-    bzero(buf, 1024);
+    mens.menu = 0; //Código que informa cadastramento
+    sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
     recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
 
     if(mens.codigo == 10)
@@ -74,17 +85,63 @@ main(argc, argv)
     printf("Digite 2 para ver os usuário que estao online\n");
     printf("Digite 3 para se desconectar\n");
 
-    scanf("%i", &mens.codigo);
+    scanf("%i", &mens.menu);
   //---------------------------------------------------------------------------------
 
-  //Printa Lista Usuário-------------------------------------------------------------
-    if(mens.codigo == 2)
+//Conversa com Outro Usuário---------------------------------------------------------
+    if(mens.menu == 1)
+    {
+      //Pergunta com quem quer falar e manda para o servidor o código e o nome
+      printf("Com quem você gostaria de conversar?\n");
+      clean_stdin();
+      fgets(mens.username_cliente, 49, stdin);
+
+      sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+      recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &tam);
+
+      if(mens.codigo == 1)
+      {
+        if(fork() == 0)
+        {
+          //Filho
+          name.sin_addr.s_addr = mens.cliente_addr;
+          name.sin_port = mens.cliente_port;
+          do
+          {
+            bzero(mens.linha, 1024);
+            recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
+            printf("Mensagem Recebida: %s\n", mens.linha);
+          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+        }
+        else
+        {
+          //name.sin_addr.s_addr = mens.cliente_addr;
+          //name.sin_port = mens.cliente_port;
+          //Pai
+          do
+          {
+            printf("\nDigite a Mensagem: ");
+            bzero(mens.linha, 1024);
+            clean_stdin();
+            fgets(mens.linha, 1023, stdin);
+            sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+        }
+      }
+      if(mens.codigo == 0)
+      {
+        printf("Usuário não encontrado\n");
+      }
+    }
+
+//Printa Lista Usuário-------------------------------------------------------------
+    if(mens.menu == 2)
     {
       sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
       recvfrom(sock,(char *)&lista_usuarios,sizeof lista_usuarios, 0, (struct sockaddr *)&name, &tam);
       for(int i = 0; i < 10; i++)
       {
-        if(strcmp(lista_usuarios[i].username_cliente, "")!=0)
+        if(strcmp(lista_usuarios[i].username_cliente, "") != 0)
         {
           printf("%s\n", lista_usuarios[i].username_cliente);
         }
@@ -94,8 +151,8 @@ main(argc, argv)
         
       }
     }
-
-    if(mens.codigo == 3)
+//Desloga do Sistema-------------------------------------------------------------
+    if(mens.menu == 3)
     {
       sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
       sair = 1;

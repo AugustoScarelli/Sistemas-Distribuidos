@@ -4,25 +4,31 @@
 #include <stdio.h>
 #include <netdb.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <string.h>
 #include <arpa/inet.h>
+#include <strings.h>
+#include <unistd.h>
 
 struct mensagem
 {
+  int menu;
   int codigo;
   int qtd_users;
   char username_cliente[50];
   char linha[1024];
+  int cliente_port;
+  int cliente_addr;
 };
 
 main()
 {
-	int sock, length, qtd_usuarios = 0, valid = 0, posi;
+	int sock, length, qtd_usuarios = 0, valid = 0, posi, existe;
 	struct sockaddr_in name;
 	char buf[1024], zera[50]="--";
   //---------------
   struct mensagem mens;
   struct mensagem lista_usuarios[10];
+  int portaC1, portaC2, addrC1, addrC2;
 
   /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -57,7 +63,7 @@ do
   bzero(buf, 1024);
   recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
 
-  switch(mens.codigo)
+  switch(mens.menu)
   {
     //Cadastramento
     case 0: 
@@ -73,7 +79,8 @@ do
       if(valid == 0)
       {
         strcpy(lista_usuarios[qtd_usuarios].username_cliente, mens.username_cliente);
-        printf("%s está online\n", lista_usuarios[qtd_usuarios].username_cliente);
+        lista_usuarios[qtd_usuarios].cliente_addr = name.sin_addr.s_addr;
+        lista_usuarios[qtd_usuarios].cliente_port = name.sin_port;
 
         //Envia pro cliente um feedback quando cadastrado
         bzero(buf, 1024);
@@ -93,6 +100,60 @@ do
 
     //Falar com outro usuário
     case 1:
+      portaC1 = name.sin_port;
+      addrC1 = name.sin_addr.s_addr;
+      printf("É isso aqui ó: %s\n", mens.username_cliente);
+      //Verifica se existe um usuário conectado com o nome que foi passado e, se existir, pega os dados para se conecar com ele.
+      for(int i = 0; i < 10; i++)
+      { 
+        if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
+        {
+          portaC2 = lista_usuarios[i].cliente_port;
+          addrC2 = lista_usuarios[i].cliente_addr;
+          existe = 1;
+        }
+      }
+      if(existe == 1)
+      {
+          mens.codigo = existe;
+          mens.cliente_port = portaC2;
+          mens.cliente_addr = addrC2;
+          sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+        if(fork() == 0)
+        {
+          //Filho
+          name.sin_addr.s_addr = addrC1;
+          name.sin_port = portaC1;
+          do
+          {
+            bzero(mens.linha, 1024);
+            recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
+            printf("Mensagem Recebida: %s\n", mens.linha);
+          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+        }
+        else
+        {
+          name.sin_addr.s_addr = addrC2;
+          name.sin_port = portaC2;
+          //Pai
+          do
+          {
+            printf("\nDigite a Mensagem: ");
+            bzero(mens.linha, 1024);
+            clean_stdin();
+            fgets(mens.linha, 1023, stdin);
+            sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+
+        }
+        break;
+      }
+      else
+      {
+        mens.codigo = 0;
+        sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
+        break;
+      }
 
     //Listar Usuários Online
     case 2:

@@ -76,7 +76,7 @@ do
     //Cadastramento
     case 0: 
       //Verifica se já não existe um usuário com o mesmo nome
-      for(int i = 0; i < 10; i++)
+      for(int i = 0; i < qtd_usuarios; i++)
       {
         if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
         {
@@ -114,7 +114,6 @@ do
       { 
         if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
         {
-          printf("if");
           mens.cliente_port = lista_usuarios[i].cliente_port;
           mens.cliente_addr = lista_usuarios[i].cliente_addr;
           existe = 1;
@@ -143,6 +142,8 @@ do
       for(int i = posi; i < 10-posi; i++)
       {
         strcpy(lista_usuarios[i].username_cliente, lista_usuarios[i+1].username_cliente);
+        lista_usuarios[i].cliente_addr = lista_usuarios[i+1].cliente_addr;
+        lista_usuarios[i].cliente_port = lista_usuarios[i+1].cliente_port;
       }
       qtd_usuarios--;
   }

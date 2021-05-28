@@ -1,4 +1,4 @@
- #include <sys/types.h>
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -100,13 +100,13 @@ main(argc, argv)
       sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
       recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &tam);
 
+      name.sin_addr.s_addr = mens.cliente_addr;
+      name.sin_port = mens.cliente_port;
       if(mens.codigo == 1)
       {
         if(fork() == 0)
         {
           //Filho
-          name.sin_addr.s_addr = mens.cliente_addr;
-          name.sin_port = mens.cliente_port;
           while(strcmp(mens.linha, "Sair\n\0") != 0)
           {
             bzero(mens.linha, 1024);
@@ -116,8 +116,6 @@ main(argc, argv)
         }
         else
         {
-          name.sin_addr.s_addr = mens.cliente_addr;
-          name.sin_port = mens.cliente_port;
           //Pai
           while(strcmp(mens.linha, "Sair\n\0") != 0)
           {

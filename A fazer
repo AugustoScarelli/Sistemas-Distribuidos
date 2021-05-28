@@ -1,1 +1,3 @@
-fazer envio de mensagens entre clientes
+Passo a referencia pro cliente e n dependo do servidor para conectar, ja mando diretamente.
+
+Servidor apenas verifica se o cliente existe e, caso exista, passa os endereços

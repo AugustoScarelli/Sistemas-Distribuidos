@@ -37,6 +37,7 @@ main(argc, argv)
 	struct hostent *hp, *gethostbyname();
   struct mensagem mens;
   struct mensagem lista_usuarios[10];
+  int portaDest, addrDest;
 
   /* Cria o socket de comunicacao */
 	sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -110,13 +111,13 @@ main(argc, argv)
           {
             bzero(mens.linha, 1024);
             recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
-            printf("Mensagem Recebida: %s\n", mens.linha);
+            printf("%s: %s\n", mens.username_cliente, mens.linha);
           }while(strcmp(mens.linha, "Sair\n\0") != 0);
         }
         else
         {
-          //name.sin_addr.s_addr = mens.cliente_addr;
-          //name.sin_port = mens.cliente_port;
+          name.sin_addr.s_addr = mens.cliente_addr;
+          name.sin_port = mens.cliente_port;
           //Pai
           do
           {
@@ -156,6 +157,10 @@ main(argc, argv)
     {
       sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
       sair = 1;
+    }
+    if(sair == 1)
+    {
+      printf("Até logo!\n");
     }
 
   }while(sair == 0);

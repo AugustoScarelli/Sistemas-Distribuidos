@@ -9,6 +9,14 @@
 #include <strings.h>
 #include <unistd.h>
 
+void clean_stdin(void)
+{
+    int c;
+    do {
+        c = getchar();
+    } while (c != '\n' && c != EOF);
+}
+
 struct mensagem
 {
   int menu;
@@ -24,7 +32,7 @@ main()
 {
 	int sock, length, qtd_usuarios = 0, valid = 0, posi, existe;
 	struct sockaddr_in name;
-	char buf[1024], zera[50]="--";
+	char buf[1024], zera[50]="--", username_cliente1[50], username_cliente2[50];
   //---------------
   struct mensagem mens;
   struct mensagem lista_usuarios[10];
@@ -100,60 +108,21 @@ do
 
     //Falar com outro usuário
     case 1:
-      portaC1 = name.sin_port;
-      addrC1 = name.sin_addr.s_addr;
-      printf("É isso aqui ó: %s\n", mens.username_cliente);
+      existe = 0;
       //Verifica se existe um usuário conectado com o nome que foi passado e, se existir, pega os dados para se conecar com ele.
       for(int i = 0; i < 10; i++)
       { 
         if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)
         {
-          portaC2 = lista_usuarios[i].cliente_port;
-          addrC2 = lista_usuarios[i].cliente_addr;
+          printf("if");
+          mens.cliente_port = lista_usuarios[i].cliente_port;
+          mens.cliente_addr = lista_usuarios[i].cliente_addr;
+          strcpy(mens.username_cliente, lista_usuarios[i].username_cliente);
           existe = 1;
         }
       }
-      if(existe == 1)
-      {
-          mens.codigo = existe;
-          mens.cliente_port = portaC2;
-          mens.cliente_addr = addrC2;
-          sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-        if(fork() == 0)
-        {
-          //Filho
-          name.sin_addr.s_addr = addrC1;
-          name.sin_port = portaC1;
-          do
-          {
-            bzero(mens.linha, 1024);
-            recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
-            printf("Mensagem Recebida: %s\n", mens.linha);
-          }while(strcmp(mens.linha, "Sair\n\0") != 0);
-        }
-        else
-        {
-          name.sin_addr.s_addr = addrC2;
-          name.sin_port = portaC2;
-          //Pai
-          do
-          {
-            printf("\nDigite a Mensagem: ");
-            bzero(mens.linha, 1024);
-            clean_stdin();
-            fgets(mens.linha, 1023, stdin);
-            sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-          }while(strcmp(mens.linha, "Sair\n\0") != 0);
-
-        }
-        break;
-      }
-      else
-      {
-        mens.codigo = 0;
-        sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-        break;
-      }
+      mens.codigo = existe;
+      sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
 
     //Listar Usuários Online
     case 2:
@@ -164,7 +133,6 @@ do
     default: printf("\nOpcao nao encontrada.Tente novamente mais tarde ou tente outra funcionalidade.\n");
 
     case 3:
-      printf("Até logo!\n");
       for(int i = 0; i < 10; i++)
       {
         if(strcmp(mens.username_cliente, lista_usuarios[i].username_cliente) == 0)

@@ -107,26 +107,25 @@ main(argc, argv)
           //Filho
           name.sin_addr.s_addr = mens.cliente_addr;
           name.sin_port = mens.cliente_port;
-          do
+          while(strcmp(mens.linha, "Sair\n\0") != 0)
           {
             bzero(mens.linha, 1024);
             recvfrom(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, &length);
-            printf("%s: %s\n", mens.username_cliente, mens.linha);
-          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+            printf("%s\n", mens.linha);
+          }
         }
         else
         {
           name.sin_addr.s_addr = mens.cliente_addr;
           name.sin_port = mens.cliente_port;
           //Pai
-          do
+          while(strcmp(mens.linha, "Sair\n\0") != 0)
           {
             printf("\nDigite a Mensagem: ");
             bzero(mens.linha, 1024);
-            clean_stdin();
             fgets(mens.linha, 1023, stdin);
             sendto(sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-          }while(strcmp(mens.linha, "Sair\n\0") != 0);
+          }
         }
       }
       if(mens.codigo == 0)
@@ -156,11 +155,8 @@ main(argc, argv)
     if(mens.menu == 3)
     {
       sendto (sock,(char *)&mens,sizeof mens, 0, (struct sockaddr *)&name, sizeof name);
-      sair = 1;
-    }
-    if(sair == 1)
-    {
       printf("Até logo!\n");
+      sair = 1;
     }
 
   }while(sair == 0);

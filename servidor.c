@@ -117,7 +117,6 @@ do
           printf("if");
           mens.cliente_port = lista_usuarios[i].cliente_port;
           mens.cliente_addr = lista_usuarios[i].cliente_addr;
-          strcpy(mens.username_cliente, lista_usuarios[i].username_cliente);
           existe = 1;
         }
       }
